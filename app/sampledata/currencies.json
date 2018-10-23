@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "title": "EUR",
+      "description": "Euro Member Countries, Euro",
+      "flag": "@mipmap/flag_eur",
+      "value": "1"
+    },
+    {
+      "title": "AUD",
+      "description": "Australia, Dollar",
+      "flag": "@mipmap/flag_aud",
+      "value": "1.6155"
+    },
+    {
+      "title": "BGN",
+      "description": "Bulgaria, Lev",
+      "flag": "@mipmap/flag_bgn",
+      "value": "1.9547"
+    },
+    {
+      "title": "BRL",
+      "description": "Brazil, Real",
+      "flag": "@mipmap/flag_brl",
+      "value": "4.789"
+    },
+    {
+      "title": "CAD",
+      "description": "Canada, Dollar",
+      "flag": "@mipmap/flag_cad",
+      "value": "1.5329"
+    },
+    {
+      "title": "CHF",
+      "description": "Switzerland, Franc",
+      "flag": "@mipmap/flag_chf",
+      "value": "1.1268"
+    },
+    {
+      "title": "CNY",
+      "description": "China, Yuan Renminbi",
+      "flag": "@mipmap/flag_cny",
+      "value": "7.9405"
+    },
+    {
+      "title": "CZK",
+      "description": "Czechia, Koruna",
+      "flag": "@mipmap/flag_czk",
+      "value": "25.7"
+    }
+  ]
+}
