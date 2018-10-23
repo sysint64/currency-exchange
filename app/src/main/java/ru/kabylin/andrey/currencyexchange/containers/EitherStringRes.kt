@@ -38,4 +38,3 @@ class EitherStringRes(val string: String?, val res: Int?) : ContextStringify {
             else -> throw UnsupportedOperationException()
         }
 }
-
