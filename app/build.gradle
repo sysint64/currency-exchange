@@ -60,6 +60,9 @@ dependencies {
     implementation "android.arch.lifecycle:viewmodel:$lifecycle_version"
     kapt "android.arch.lifecycle:compiler:$lifecycle_version"
 
+    // Appearance
+    implementation "com.github.bumptech.glide:glide:4.7.1"
+
     // Test
     testImplementation 'junit:junit:4.12'
     testImplementation "io.mockk:mockk:1.8.7"

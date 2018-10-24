@@ -3,6 +3,8 @@ package ru.kabylin.andrey.currencyexchange
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.EditText
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.item_currency.view.*
@@ -20,6 +22,10 @@ import ru.kabylin.andrey.currencyexchange.services.ExchangeService
 import ru.kabylin.andrey.currencyexchange.views.ViewMediatorAware
 import ru.kabylin.andrey.currencyexchange.views.recyclerview.SingleItemRecyclerAdapter
 
+/**
+ * TODO: Необходимо еще корректно отображать ошибка, такие как - отсутствие сети,
+ * не верный ответ от сервера, внутренняя ошибка на сервер итд.
+ */
 class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, ClientErrorsListener {
     override val kodeinContext = kcontext(this)
     override val kodein by closestKodein()
@@ -31,15 +37,24 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
         ClientViewMediator(client, this, lifecycle)
     }
 
-    data class RateRecyclerItemBox(
-        val response: ExchangeService.RateResponse,
-        val isBase: Boolean,
-        val onUpdateRate: ((String) -> Unit)?
-    )
-
-    private val items = ArrayList<RateRecyclerItemBox>()
-    private var base: RateRecyclerItemBox? = null
+    private val items = ArrayList<ExchangeService.RateResponse>()
+    private var base: ExchangeService.RateResponse? = null
     private var lastRate = ""
+
+    private val textWatcher = object : TextWatcher {
+        override fun afterTextChanged(s: Editable?) {}
+
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+            /**
+             * Т.к. recyclerView переиспользует editText, удостоверимся, что
+             * используется верное поле для редактирования множителя.
+             */
+            if (getFactorEditText()?.tag == base?.ref)
+                onUpdateRateFactor(s.toString())
+        }
+    }
 
     private val recyclerAdapter by lazy {
         SingleItemRecyclerAdapter(this, items, R.layout.item_currency,
@@ -61,26 +76,21 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
         val query = exchangeService.getBaseRate()
 
         client.execute(query) {
-            base = box(it.payload, isBase = true)
-            lastRate = base!!.response.ref
+            base = it.payload
+            lastRate = base!!.ref
             items.add(base!!)
             recyclerAdapter.notifyItemInserted(0)
             subscribeRates()
         }
     }
 
-    private fun box(rate: ExchangeService.RateResponse, isBase: Boolean = false): RateRecyclerItemBox =
-        RateRecyclerItemBox(
-            response = rate,
-            isBase = isBase,
-            onUpdateRate = if (isBase) { ::onUpdateRateFactor } else { null }
-        )
 
     private fun onUpdateRateFactor(newFactor: String) {
         val query = exchangeService.updateFactor(newFactor)
 
         client.execute(query) {
-            getFactorEditText().error = null
+            getFactorEditText()?.error = null
+            base?.value = newFactor
         }
     }
 
@@ -90,35 +100,35 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
     }
 
     private fun onUpdateRates(items: ClientResponse<List<ExchangeService.RateResponse>>) {
-        fun notBase(item: RateRecyclerItemBox): Boolean {
-            return item.response.ref != base?.response?.ref
+        fun notBase(item: ExchangeService.RateResponse): Boolean {
+            return item.ref != base?.ref
         }
 
         this.items.removeAll(::notBase)  // Удаляем из списка все, кроме базового
 
         val updatedItems = items.payload
-            .map { box(it) }
             .filter(::notBase)
 
         this.items.addAll(updatedItems)
         recyclerAdapter.notifyItemRangeChanged(1, updatedItems.size)
+        getFactorEditText()?.addTextChangedListener(textWatcher)
     }
 
-    private fun onRateClick(rate: RateRecyclerItemBox) {
-        if (lastRate == rate.response.ref || rate.response.ref == base?.response?.ref)
+    private fun onRateClick(rate: ExchangeService.RateResponse) {
+        if (lastRate == rate.ref || rate.ref == base?.ref)
             return
 
-        lastRate = rate.response.ref
-        val query = exchangeService.setBase(rate.response.ref)
+        lastRate = rate.ref
+        val query = exchangeService.setBase(rate.ref)
 
         client.execute(query) {
-            base = rate.copy(response = rate.response.copy(value = "1"))
+            base = rate.copy(value = "1")
             swapBaseRateItem()
         }
     }
 
     private fun swapBaseRateItem() {
-        val index = items.indexOfFirst { it.response.ref == base?.response?.ref }
+        val index = items.indexOfFirst { it.ref == base?.ref }
 
         if (index == 0)
             return
@@ -130,14 +140,14 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
         recyclerAdapter.notifyItemChanged(0)
 
         recyclerView.run {
-            getFactorEditText().requestFocus()
+            getFactorEditText()?.requestFocus()
             refreshRates()
         }
     }
 
-    private fun getFactorEditText(): EditText {
-        val view = recyclerView.findViewHolderForAdapterPosition(0).itemView
-        return view.rateEditText
+    private fun getFactorEditText(): EditText? {
+        val holder = recyclerView.findViewHolderForAdapterPosition(0) as? RateHolder
+        return holder?.itemView?.rateEditText
     }
 
     private fun refreshRates() {
@@ -147,6 +157,6 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
 
     override fun onValidationErrors(error: ClientResponse<ValidationErrors>) {
         val factorError = error.payload.errors["factor"] ?: return
-        getFactorEditText().error = factorError.toString(this)
+        getFactorEditText()?.error = factorError.toString(this)
     }
 }

@@ -11,7 +11,7 @@ interface ExchangeService {
         val ref: String,
         val title: String,
         val description: EitherStringRes,
-        val value: String,
+        var value: String,
         @DrawableRes val flag: Int
     )
 

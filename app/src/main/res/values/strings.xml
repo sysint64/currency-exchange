@@ -2,6 +2,7 @@
     <string name="app_name">Currency Exchange</string>
     <string name="country_flag">Country flag</string>
     <string name="bad_factor_validation_error">Bad factor</string>
+    <string name="description_currency_eur">Euro Member Countries, Euro</string>
     <string name="description_currency_aud">Australia, Dollar</string>
     <string name="description_currency_bgn">Bulgaria, Lev</string>
     <string name="description_currency_brl">Brazil, Real</string>

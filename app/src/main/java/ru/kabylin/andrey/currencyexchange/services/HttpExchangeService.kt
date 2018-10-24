@@ -6,11 +6,14 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.subjects.PublishSubject
 import retrofit2.http.GET
+import retrofit2.http.Query
 import ru.kabylin.andrey.currencyexchange.R
 import ru.kabylin.andrey.currencyexchange.client.ValidationErrors
 import ru.kabylin.andrey.currencyexchange.client.http.HttpClient
 import ru.kabylin.andrey.currencyexchange.containers.EitherStringRes
 import ru.kabylin.andrey.currencyexchange.services.models.ApiRatesResponse
+import ru.kabylin.andrey.currencyexchange.services.models.convertApiRatesResponseToRateResponseList
+import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
 
 class HttpExchangeService(client: HttpClient) : ExchangeService {
@@ -20,7 +23,7 @@ class HttpExchangeService(client: HttpClient) : ExchangeService {
 
     interface ApiGateway {
         @GET("latest")
-        fun getRates(): Single<ApiRatesResponse>
+        fun getRates(@Query("base") base: String): Single<ApiRatesResponse>
     }
 
     private val apiGateway by lazy {
@@ -30,19 +33,19 @@ class HttpExchangeService(client: HttpClient) : ExchangeService {
         )
     }
 
-    private var factor: Float = 1.0f
+    private var factor: Double = 1.0
     private var baseRef: String = "EUR"
     private val subject = PublishSubject.create<List<ExchangeService.RateResponse>>()
     private var timerStarted = false
     private var skipCount = 0
-    private val currentRates = ArrayList<ExchangeService.RateResponse>()
+    private var currentRates: List<ExchangeService.RateResponse> = listOf()
 
     override fun getBaseRate(): Single<ExchangeService.RateResponse> =
         Single.just(
             ExchangeService.RateResponse(
                 ref = "EUR",
                 title = "EUR",
-                description = EitherStringRes.string("Euro Member Countries, Euro"),
+                description = EitherStringRes.res(R.string.description_currency_eur),
                 flag = R.mipmap.flag_eur,
                 value = "1"
             )
@@ -71,31 +74,37 @@ class HttpExchangeService(client: HttpClient) : ExchangeService {
         Completable.fromAction {
             this.baseRef = baseRef
             skipCount = 2  // Пропустить 2 обновления
-            factor = 1.0f
+            factor = 1.0
         }
 
     override fun refreshRates(): Completable =
         emitNewRates()
 
-    private fun emitNewRates() = Completable.fromAction {
-//        val result = sampleRates
-//            .filter { it.ref != baseRef }
-//            .map {
-//                val random = Random()
-//                it.copy(value = String.format("%.4f", random.nextFloat() * 10 * factor))
-//            }
-//
-//        subject.onNext(result)
-    }
+    private fun emitNewRates() =
+        apiGateway.getRates(baseRef)
+            .map {
+                currentRates = convertApiRatesResponseToRateResponseList(it)
+                    .filter { it.ref != baseRef }
 
-    override fun updateFactor(factor: String): Completable {
-        val newFactor = factor.toFloatOrNull()
-            ?: return Completable.error(
-                ValidationErrors("factor", R.string.bad_factor_validation_error)
-            )
+                subject.onNext(recalculateValuesForCurrentRates())
+            }
+            .ignoreElement()
 
-        this.factor = newFactor
-        skipCount = 1  // Пропустить 1 обновление
-        return emitNewRates()
+    override fun updateFactor(factor: String): Completable =
+        Completable.fromAction {
+            val newFactor = factor.toDoubleOrNull()
+                ?: throw ValidationErrors("factor", R.string.bad_factor_validation_error)
+
+            this.factor = newFactor
+            skipCount = 1  // Пропустить 1 обновление
+            subject.onNext(recalculateValuesForCurrentRates())
+        }
+
+    private fun recalculateValuesForCurrentRates(): List<ExchangeService.RateResponse> {
+        return currentRates
+            .map {
+                val newValue = it.value.toBigDecimal() * BigDecimal.valueOf(factor)
+                it.copy(value = String.format("%.4f", newValue))
+            }
     }
 }
