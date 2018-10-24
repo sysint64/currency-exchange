@@ -13,7 +13,7 @@ class ClientViewMediatorTest {
         var testRequestState: RequestState? = null
 
         class Aware : ViewMediatorAware, RequestStateListener {
-            override val viewMediator = ClientViewMediator(client, this, mockk())
+            override val viewMediator = ClientViewMediator(client, this, mockk(relaxed = true))
 
             override fun onRequestStateUpdated(requestState: ClientResponse<RequestState>) {
                 testRequestState = requestState.payload
@@ -42,7 +42,7 @@ class ClientViewMediatorTest {
         var testCriticalError: Throwable? = null
 
         class Aware : ViewMediatorAware, ClientErrorsListener {
-            override val viewMediator = ClientViewMediator(client, this, mockk())
+            override val viewMediator = ClientViewMediator(client, this, mockk(relaxed = true))
 
             override fun onLogicError(error: ClientResponse<LogicError>) {
                 testLogicError = error.payload
