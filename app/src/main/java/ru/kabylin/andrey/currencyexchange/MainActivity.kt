@@ -122,6 +122,8 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware,
 
         this.items.addAll(updatedItems)
         recyclerAdapter.notifyItemRangeChanged(1, updatedItems.size)
+
+        getFactorEditText()?.removeTextChangedListener(textWatcher)
         getFactorEditText()?.addTextChangedListener(textWatcher)
     }
 
