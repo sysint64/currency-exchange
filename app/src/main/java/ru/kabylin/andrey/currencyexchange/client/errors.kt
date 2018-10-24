@@ -9,9 +9,9 @@ import java.io.Serializable
 /**
  * Ошибки произошедшие в работе бизнесс логики.
  */
-abstract class Reason(val payload: Any? = null): ContextStringify
+abstract class Reason(val payload: Any? = null) : ContextStringify
 
-open class DescReason(private val data: EitherStringRes): Reason() {
+open class DescReason(private val data: EitherStringRes) : Reason() {
     override fun toString(context: Context): String = data.toString(context)
 
     override fun toString(): String = data.toString()
@@ -36,16 +36,22 @@ class CanceledError(details: String?) : RuntimeException(details)
  * причина должна быть указана в [reason].
  */
 class LogicError(val reason: Reason, details: String? = null, cause: Throwable? = null) : RuntimeException(details, cause) {
-    constructor(@StringRes reason: Int): this(DescReason.res(reason))
+    constructor(@StringRes reason: Int) : this(DescReason.res(reason))
 
-    constructor(reason: String): this(DescReason.string(reason))
+    constructor(reason: String) : this(DescReason.string(reason))
 
-    constructor(reason: String, cause: Throwable?): this(DescReason.string(reason), cause = cause)
+    constructor(reason: String, cause: Throwable?) : this(DescReason.string(reason), cause = cause)
 }
 
 // Ошибка валидации данных - к примеру не валидный email, невалидны телефон итд.
-class ValidationErrors(val errors: Map<String, String>, val details: String? = null) : RuntimeException(details) {
-    constructor(field: String, details: String) : this(mapOf(field to details))
+class ValidationErrors(val errors: Map<String, EitherStringRes>, val details: String? = null) : RuntimeException(details) {
+    constructor(field: String, details: EitherStringRes) : this(mapOf(field to details))
+
+    constructor(field: String, details: String)
+        : this(mapOf(field to EitherStringRes.string(details)))
+
+    constructor(field: String, @StringRes details: Int)
+        : this(mapOf(field to EitherStringRes.res(details)))
 }
 
 // Ошибка предоставления прав для пользователя.
@@ -71,10 +77,10 @@ sealed class AccessErrorReason(val message: String? = null) : Serializable {
     object TIMEOUT : AccessErrorReason()
 
     // Не удалось распознать ответ от сервер
-    object BAD_RESPONSE: AccessErrorReason()
+    object BAD_RESPONSE : AccessErrorReason()
 
     // Произошла ошибка на сервере
-    object INTERNAL_SERVER_ERROR: AccessErrorReason()
+    object INTERNAL_SERVER_ERROR : AccessErrorReason()
 
     // Старая версия приложения, использующее несовместимое апи
     class VERSION_ERROR(val level: VersionErrorLevel) : AccessErrorReason()

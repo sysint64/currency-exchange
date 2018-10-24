@@ -18,7 +18,9 @@ interface ExchangeService {
 
     fun rates(): Observable<List<RateResponse>>
 
-    fun setBase(baseRef: String, factor: String): Completable
+    fun setBase(baseRef: String): Completable
 
     fun refreshRates(): Completable
+
+    fun updateFactor(factor: String): Completable
 }

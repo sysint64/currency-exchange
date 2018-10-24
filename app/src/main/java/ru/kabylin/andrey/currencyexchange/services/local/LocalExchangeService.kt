@@ -1,16 +1,20 @@
 package ru.kabylin.andrey.currencyexchange.services.local
 
 import io.reactivex.*
+import io.reactivex.Observable
 import io.reactivex.rxkotlin.subscribeBy
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import ru.kabylin.andrey.currencyexchange.R
+import ru.kabylin.andrey.currencyexchange.client.LogicError
+import ru.kabylin.andrey.currencyexchange.client.ValidationErrors
 import ru.kabylin.andrey.currencyexchange.services.ExchangeService
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class LocalExchangeService : ExchangeService {
     companion object {
-        const val PERIOD = 2L  // Seconds
+        const val PERIOD = 1L  // Seconds
     }
 
     private val sampleRates =
@@ -73,12 +77,11 @@ class LocalExchangeService : ExchangeService {
             )
         )
 
-    private var factor: Double = 1.0
+    private var factor: Float = 1.0f
     private var baseRef: String = "EUR"
     private val subject = PublishSubject.create<List<ExchangeService.RateResponse>>()
     private var timerStarted = false
     private var skipCount = 0
-    private val lock = Object()
 
     override fun getBaseRate(): Single<ExchangeService.RateResponse> =
         Single.just(
@@ -98,8 +101,7 @@ class LocalExchangeService : ExchangeService {
             Flowable.interval(PERIOD, TimeUnit.SECONDS)
                 .subscribeBy { _ ->
                     if (skipCount <= 0) {
-                        val result = sampleRates.filter { it.ref != baseRef }
-                        subject.onNext(result)
+                        emitNewRates()
                     } else {
                         skipCount -= 1
                     }
@@ -109,15 +111,36 @@ class LocalExchangeService : ExchangeService {
         return subject
     }
 
-    override fun setBase(baseRef: String, factor: String): Completable =
+    override fun setBase(baseRef: String): Completable =
         Completable.fromAction {
             this.baseRef = baseRef
             skipCount = 2  // Пропустить 2 обновления
+            factor = 1.0f
         }
 
     override fun refreshRates(): Completable =
         Completable.fromAction {
-            val result = sampleRates.filter { it.ref != baseRef }
-            subject.onNext(result)
+            emitNewRates()
+        }
+
+    private fun emitNewRates() {
+        val result = sampleRates
+            .filter { it.ref != baseRef }
+            .map {
+                val random = Random()
+                it.copy(value = String.format("%.4f", random.nextFloat() * 10 * factor))
+            }
+
+        subject.onNext(result)
+    }
+
+    override fun updateFactor(factor: String): Completable =
+        Completable.fromAction {
+            val newFactor = factor.toFloatOrNull()
+                ?: throw ValidationErrors("factor", R.string.bad_factor_validation_error)
+
+            this.factor = newFactor
+            skipCount = 1  // Пропустить 1 обновление
+            emitNewRates()
         }
 }
