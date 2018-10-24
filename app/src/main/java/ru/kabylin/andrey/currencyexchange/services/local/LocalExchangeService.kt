@@ -99,13 +99,15 @@ class LocalExchangeService : ExchangeService {
             timerStarted = true
 
             Flowable.interval(PERIOD, TimeUnit.SECONDS)
-                .subscribeBy { _ ->
+                .flatMap {
                     if (skipCount <= 0) {
-                        emitNewRates()
+                        emitNewRates().toFlowable<Unit>()
                     } else {
                         skipCount -= 1
+                        Flowable.just(Unit)
                     }
                 }
+                .subscribe()
         }
 
         return subject
@@ -119,11 +121,9 @@ class LocalExchangeService : ExchangeService {
         }
 
     override fun refreshRates(): Completable =
-        Completable.fromAction {
-            emitNewRates()
-        }
+        emitNewRates()
 
-    private fun emitNewRates() {
+    private fun emitNewRates() = Completable.fromAction {
         val result = sampleRates
             .filter { it.ref != baseRef }
             .map {
@@ -134,13 +134,14 @@ class LocalExchangeService : ExchangeService {
         subject.onNext(result)
     }
 
-    override fun updateFactor(factor: String): Completable =
-        Completable.fromAction {
-            val newFactor = factor.toFloatOrNull()
-                ?: throw ValidationErrors("factor", R.string.bad_factor_validation_error)
+    override fun updateFactor(factor: String): Completable {
+        val newFactor = factor.toFloatOrNull()
+            ?: return Completable.error(
+                ValidationErrors("factor", R.string.bad_factor_validation_error)
+            )
 
-            this.factor = newFactor
-            skipCount = 1  // Пропустить 1 обновление
-            emitNewRates()
-        }
+        this.factor = newFactor
+        skipCount = 1  // Пропустить 1 обновление
+        return emitNewRates()
+    }
 }
