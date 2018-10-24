@@ -2,7 +2,7 @@ package ru.kabylin.andrey.currencyexchange.services
 
 import android.support.annotation.DrawableRes
 import io.reactivex.Completable
-import io.reactivex.Flowable
+import io.reactivex.Observable
 import io.reactivex.Single
 
 interface ExchangeService {
@@ -16,7 +16,9 @@ interface ExchangeService {
 
     fun getBaseRate(): Single<RateResponse>
 
-    fun rates(): Flowable<List<RateResponse>>
+    fun rates(): Observable<List<RateResponse>>
 
     fun setBase(baseRef: String, factor: String): Completable
+
+    fun refreshRates(): Completable
 }

@@ -14,4 +14,12 @@ class RateHolder(context: Context, view: View) : RecyclerItemHolder<ExchangeServ
             countryImageView.setImageResource(data.flag)
             rateEditText.setText(data.value)
         }
+
+    override fun setOnItemClick(data: ExchangeService.RateResponse, onItemClick: (data: ExchangeService.RateResponse) -> Unit) {
+        view.rateEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                onItemClick(data)
+            }
+        }
+    }
 }

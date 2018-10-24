@@ -1,11 +1,11 @@
 package ru.kabylin.andrey.currencyexchange.services.local
 
-import io.reactivex.Completable
-import io.reactivex.Flowable
-import io.reactivex.Single
+import io.reactivex.*
+import io.reactivex.rxkotlin.subscribeBy
+import io.reactivex.subjects.PublishSubject
+import io.reactivex.subjects.Subject
 import ru.kabylin.andrey.currencyexchange.R
 import ru.kabylin.andrey.currencyexchange.services.ExchangeService
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 class LocalExchangeService : ExchangeService {
@@ -74,6 +74,11 @@ class LocalExchangeService : ExchangeService {
         )
 
     private var factor: Double = 1.0
+    private var baseRef: String = "EUR"
+    private val subject = PublishSubject.create<List<ExchangeService.RateResponse>>()
+    private var timerStarted = false
+    private var skipCount = 0
+    private val lock = Object()
 
     override fun getBaseRate(): Single<ExchangeService.RateResponse> =
         Single.just(
@@ -86,19 +91,33 @@ class LocalExchangeService : ExchangeService {
             )
         )
 
-    override fun rates() =
-        Flowable.interval(PERIOD, TimeUnit.SECONDS)
-            .map { _ ->
-                val random = Random()
-                sampleRates
-                    .map {
-                        it.copy(
-                            value = String.format("%.4f", random.nextDouble() * 100)
-                        )
-                    }
-            }
+    override fun rates(): Observable<List<ExchangeService.RateResponse>> {
+        if (!timerStarted) {
+            timerStarted = true
 
-    override fun setBase(baseRef: String, factor: String): Completable {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            Flowable.interval(PERIOD, TimeUnit.SECONDS)
+                .subscribeBy { _ ->
+                    if (skipCount <= 0) {
+                        val result = sampleRates.filter { it.ref != baseRef }
+                        subject.onNext(result)
+                    } else {
+                        skipCount -= 1
+                    }
+                }
+        }
+
+        return subject
     }
+
+    override fun setBase(baseRef: String, factor: String): Completable =
+        Completable.fromAction {
+            this.baseRef = baseRef
+            skipCount = 2  // Пропустить 2 обновления
+        }
+
+    override fun refreshRates(): Completable =
+        Completable.fromAction {
+            val result = sampleRates.filter { it.ref != baseRef }
+            subject.onNext(result)
+        }
 }

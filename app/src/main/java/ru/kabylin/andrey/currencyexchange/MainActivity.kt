@@ -3,8 +3,8 @@ package ru.kabylin.andrey.currencyexchange
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
-import android.util.Log
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.item_currency.view.*
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware {
 
     private val items = ArrayList<ExchangeService.RateResponse>()
     private var base: ExchangeService.RateResponse? = null
+    private var lastRate = ""
 
     private val recyclerAdapter by lazy {
         SingleItemRecyclerAdapter(this, items, R.layout.item_currency,
@@ -52,6 +53,7 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware {
 
         client.execute(query) {
             base = it.payload
+            lastRate = base!!.ref
             items.add(it.payload)
             recyclerAdapter.notifyItemInserted(0)
             subscribeRates()
@@ -77,5 +79,40 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware {
     }
 
     private fun onRateClick(rate: ExchangeService.RateResponse) {
+        if (lastRate == rate.ref || rate.ref == base?.ref)
+            return
+
+        lastRate = rate.ref
+        val query = exchangeService.setBase(rate.ref, "1")
+
+        client.execute(query) {
+            base = rate.copy(value = "1")
+            swapBaseRateItem()
+        }
+    }
+
+    private fun swapBaseRateItem() {
+        val index = items.indexOfFirst { it.ref == base?.ref }
+
+        if (index == 0)
+            return
+
+        items.removeAt(index)
+        items.add(0, base!!)
+
+        recyclerAdapter.notifyItemMoved(index, 0)
+        recyclerAdapter.notifyItemChanged(0)
+
+        recyclerView.run {
+            val view = recyclerView.findViewHolderForAdapterPosition(0).itemView
+            view.rateEditText.requestFocus()
+
+            refreshRates()
+        }
+    }
+
+    private fun refreshRates() {
+        val query = exchangeService.refreshRates()
+        client.execute(query)
     }
 }
