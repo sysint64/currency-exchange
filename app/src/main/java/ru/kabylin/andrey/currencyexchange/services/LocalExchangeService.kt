@@ -1,17 +1,18 @@
-package ru.kabylin.andrey.currencyexchange.services.local
+package ru.kabylin.andrey.currencyexchange.services
 
 import io.reactivex.*
 import io.reactivex.Observable
-import io.reactivex.rxkotlin.subscribeBy
 import io.reactivex.subjects.PublishSubject
-import io.reactivex.subjects.Subject
 import ru.kabylin.andrey.currencyexchange.R
-import ru.kabylin.andrey.currencyexchange.client.LogicError
 import ru.kabylin.andrey.currencyexchange.client.ValidationErrors
-import ru.kabylin.andrey.currencyexchange.services.ExchangeService
+import ru.kabylin.andrey.currencyexchange.containers.EitherStringRes
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+/**
+ * Локальный - тестовый сервис, для возможности проверить бизнес логику
+ * без использования http.
+ */
 class LocalExchangeService : ExchangeService {
     companion object {
         const val PERIOD = 1L  // Seconds
@@ -22,56 +23,56 @@ class LocalExchangeService : ExchangeService {
             ExchangeService.RateResponse(
                 ref = "EUR",
                 title = "EUR",
-                description = "Euro Member Countries, Euro",
+                description = EitherStringRes.string("Euro Member Countries, Euro"),
                 flag = R.mipmap.flag_eur,
                 value = "1"
             ),
             ExchangeService.RateResponse(
                 ref = "AUD",
                 title = "AUD",
-                description = "Australia, Dollar",
+                description = EitherStringRes.string("Australia, Dollar"),
                 flag = R.mipmap.flag_aud,
                 value = "1.6155"
             ),
             ExchangeService.RateResponse(
                 ref = "BGN",
                 title = "BGN",
-                description = "Bulgaria, Lev",
+                description = EitherStringRes.string("Bulgaria, Lev"),
                 flag = R.mipmap.flag_bgn,
                 value = "1.9547"
             ),
             ExchangeService.RateResponse(
                 ref = "BRL",
                 title = "BRL",
-                description = "Brazil, Real",
+                description = EitherStringRes.string("Brazil, Real"),
                 flag = R.mipmap.flag_brl,
                 value = "4.789"
             ),
             ExchangeService.RateResponse(
                 ref = "CAD",
                 title = "CAD",
-                description = "Canada, Dollar",
+                description = EitherStringRes.string("Canada, Dollar"),
                 flag = R.mipmap.flag_cad,
                 value = "1.5329"
             ),
             ExchangeService.RateResponse(
                 ref = "CHF",
                 title = "CHF",
-                description = "Switzerland, Franc",
+                description = EitherStringRes.string("Switzerland, Franc"),
                 flag = R.mipmap.flag_chf,
                 value = "1.1268"
             ),
             ExchangeService.RateResponse(
                 ref = "CNY",
                 title = "CNY",
-                description = "China, Yuan Renminbi",
+                description = EitherStringRes.string("China, Yuan Renminbi"),
                 flag = R.mipmap.flag_cny,
                 value = "7.9405"
             ),
             ExchangeService.RateResponse(
                 ref = "CZK",
                 title = "CZK",
-                description = "Czechia, Koruna",
+                description = EitherStringRes.string("Czechia, Koruna"),
                 flag = R.mipmap.flag_czk,
                 value = "25.7"
             )
@@ -88,7 +89,7 @@ class LocalExchangeService : ExchangeService {
             ExchangeService.RateResponse(
                 ref = "EUR",
                 title = "EUR",
-                description = "Euro Member Countries, Euro",
+                description = EitherStringRes.string("Euro Member Countries, Euro"),
                 flag = R.mipmap.flag_eur,
                 value = "1"
             )

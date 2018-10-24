@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.View
 import kotlinx.android.synthetic.main.item_currency.view.*
 import ru.kabylin.andrey.currencyexchange.MainActivity
+import ru.kabylin.andrey.currencyexchange.containers.EitherStringRes
 import ru.kabylin.andrey.currencyexchange.services.ExchangeService
 import ru.kabylin.andrey.currencyexchange.views.recyclerview.RecyclerItemHolder
 
@@ -15,7 +16,7 @@ class RateHolder(context: Context, view: View) : RecyclerItemHolder<MainActivity
     override fun bind(data: MainActivity.RateRecyclerItemBox) =
         with(view) {
             titleTextView.text = data.response.title
-            descriptionTextView.text = data.response.description
+            descriptionTextView.text = data.response.description.toString(context)
             countryImageView.setImageResource(data.response.flag)
             rateEditText.setText(data.response.value)
 
