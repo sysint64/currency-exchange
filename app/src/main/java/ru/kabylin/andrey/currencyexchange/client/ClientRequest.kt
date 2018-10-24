@@ -4,6 +4,7 @@ import io.reactivex.disposables.Disposable
 
 enum class RequestState {
     STARTED,
+    NEXT,
     FINISHED
 }
 

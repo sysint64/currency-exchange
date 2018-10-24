@@ -16,7 +16,7 @@ import ru.kabylin.andrey.currencyexchange.services.models.convertApiRatesRespons
 import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
 
-class HttpExchangeService(client: HttpClient) : ExchangeService {
+class HttpExchangeService(val client: HttpClient) : ExchangeService {
     companion object {
         const val PERIOD = 1L  // Seconds
     }
@@ -53,9 +53,7 @@ class HttpExchangeService(client: HttpClient) : ExchangeService {
 
     override fun rates(): Observable<List<ExchangeService.RateResponse>> {
         if (!timerStarted) {
-            timerStarted = true
-
-            Flowable.interval(PERIOD, TimeUnit.SECONDS)
+            val query = Flowable.interval(PERIOD, TimeUnit.SECONDS)
                 .flatMap {
                     if (skipCount <= 0) {
                         emitNewRates().toFlowable<Unit>()
@@ -64,7 +62,10 @@ class HttpExchangeService(client: HttpClient) : ExchangeService {
                         Flowable.just(Unit)
                     }
                 }
-                .subscribe()
+
+            client.execute(query) {
+                timerStarted = true
+            }
         }
 
         return subject

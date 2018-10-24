@@ -5,28 +5,37 @@ import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.EditText
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.item_currency.view.*
+import kotlinx.android.synthetic.main.part_connection_error.view.*
+import kotlinx.android.synthetic.main.part_errors.*
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.kcontext
-import ru.kabylin.andrey.currencyexchange.client.Client
-import ru.kabylin.andrey.currencyexchange.client.ClientErrorsListener
-import ru.kabylin.andrey.currencyexchange.client.ClientResponse
-import ru.kabylin.andrey.currencyexchange.client.ValidationErrors
+import ru.kabylin.andrey.currencyexchange.client.*
 import ru.kabylin.andrey.currencyexchange.client.view.ClientViewMediator
+import ru.kabylin.andrey.currencyexchange.ext.hideView
+import ru.kabylin.andrey.currencyexchange.ext.showView
 import ru.kabylin.andrey.currencyexchange.holders.RateHolder
 import ru.kabylin.andrey.currencyexchange.services.ExchangeService
 import ru.kabylin.andrey.currencyexchange.views.ViewMediatorAware
 import ru.kabylin.andrey.currencyexchange.views.recyclerview.SingleItemRecyclerAdapter
 
 /**
- * TODO: Необходимо еще корректно отображать ошибка, такие как - отсутствие сети,
- * не верный ответ от сервера, внутренняя ошибка на сервер итд.
+ * TODO: Необходимо отображать все ошибки, и написать UI тесты для проверки,
+ * что на всех экранах корректно будут отображены ошибки пользователю.
+ * Также можно инкапсулировать отображение ошибок по умолчанию.
  */
-class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, ClientErrorsListener {
+class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware,
+    ClientErrorsListener, RequestStateListener
+{
+    companion object {
+        const val SUBSCRIBE_REQUEST_CODE = 2001
+    }
+
     override val kodeinContext = kcontext(this)
     override val kodein by closestKodein()
 
@@ -69,6 +78,9 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         viewMediator.onCreate()
+
+        noInternetErrorIncludeView.retryButton.setOnClickListener(::onRetryButtonClick)
+        timeIsOutErrorIncludeView.retryButton.setOnClickListener(::onRetryButtonClick)
     }
 
     override fun subscribe() {
@@ -79,11 +91,10 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
             base = it.payload
             lastRate = base!!.ref
             items.add(base!!)
-            recyclerAdapter.notifyItemInserted(0)
+            recyclerAdapter.notifyDataSetChanged()
             subscribeRates()
         }
     }
-
 
     private fun onUpdateRateFactor(newFactor: String) {
         val query = exchangeService.updateFactor(newFactor)
@@ -96,7 +107,7 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
 
     private fun subscribeRates() {
         val query = exchangeService.rates()
-        client.execute(query, ::onUpdateRates)
+        client.execute(query, SUBSCRIBE_REQUEST_CODE, ::onUpdateRates)
     }
 
     private fun onUpdateRates(items: ClientResponse<List<ExchangeService.RateResponse>>) {
@@ -155,8 +166,39 @@ class MainActivity : AppCompatActivity(), KodeinAware, ViewMediatorAware, Client
         client.execute(query)
     }
 
+    @Suppress("UNUSED_PARAMETER")
+    private fun onRetryButtonClick(view: View) {
+        noInternetErrorIncludeView.hideView()
+        timeIsOutErrorIncludeView.hideView()
+
+        subscribe()
+    }
+
     override fun onValidationErrors(error: ClientResponse<ValidationErrors>) {
         val factorError = error.payload.errors["factor"] ?: return
         getFactorEditText()?.error = factorError.toString(this)
+    }
+
+    override fun onAccessError(error: ClientResponse<AccessError>) {
+        when (error.payload.reason) {
+            AccessErrorReason.LOST_CONNECTION -> noInternetErrorIncludeView.showView()
+            AccessErrorReason.TIMEOUT -> timeIsOutErrorIncludeView.showView()
+        }
+    }
+
+    override fun onRequestStateUpdated(requestState: ClientResponse<RequestState>) {
+        if (requestState.requestCode != SUBSCRIBE_REQUEST_CODE)
+            return
+
+        if (items.size > 1) {
+            progressBar.hideView()
+            return
+        }
+
+        when (requestState.payload) {
+            RequestState.STARTED -> progressBar.showView()
+            RequestState.NEXT -> progressBar.hideView()
+            RequestState.FINISHED -> progressBar.hideView()
+        }
     }
 }

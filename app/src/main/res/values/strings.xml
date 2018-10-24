@@ -35,4 +35,7 @@
     <string name="description_currency_try">Turkey, Lira</string>
     <string name="description_currency_usd">United States, Dollar</string>
     <string name="description_currency_zar">South Africa, Rand</string>
+    <string name="retry">Retry</string>
+    <string name="no_internet_connection">No Internet connection</string>
+    <string name="time_is_out">Time is out</string>
 </resources>

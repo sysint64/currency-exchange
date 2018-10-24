@@ -24,38 +24,47 @@ class RequestStateCompositorTest {
         client.requestState.subscribe { values.add(it.payload) }
     }
 
-    private fun checkRequestStates() {
+    private fun checkSingleRequestStates() {
         Assert.assertEquals(2, values.size)
         Assert.assertEquals(RequestState.STARTED, values[0])
         Assert.assertEquals(RequestState.FINISHED, values[1])
+    }
+
+    private fun checkSequenceRequestStates() {
+        Assert.assertEquals(5, values.size)
+        Assert.assertEquals(RequestState.STARTED, values[0])
+        Assert.assertEquals(RequestState.NEXT, values[1])
+        Assert.assertEquals(RequestState.NEXT, values[2])
+        Assert.assertEquals(RequestState.NEXT, values[3])
+        Assert.assertEquals(RequestState.FINISHED, values[4])
     }
 
     @Test
     fun `should update request state for Single`() {
         compositor.compose(Single.just(10))
             .test { it should complete() }
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
     fun `should update request state for Completable`() {
         compositor.compose(Completable.create { it.onComplete() })
             .test { it should complete() }
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
     fun `should update request state for Flowable`() {
         compositor.compose(Flowable.just(10, 11, 12))
             .test { it should complete() }
-        checkRequestStates()
+        checkSequenceRequestStates()
     }
 
     @Test
     fun `should update request state for Observable`() {
         compositor.compose(Observable.just(10, 11, 12))
             .test { it should complete() }
-        checkRequestStates()
+        checkSequenceRequestStates()
     }
 
 // Errors ------------------------------------------------------------------------------------------
@@ -64,28 +73,28 @@ class RequestStateCompositorTest {
     fun `should update request state for Single on errors`() {
         compositor.compose(Single.error<Int>(AssertionError()))
             .test { it shouldHave error(AssertionError::class.java) }
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
     fun `should update request state for Completable on errors`() {
         compositor.compose(Completable.error(AssertionError()))
             .test { it shouldHave error(AssertionError::class.java) }
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
     fun `should update request state for Flowable on errors`() {
         compositor.compose(Flowable.error<Int>(AssertionError()))
             .test { it shouldHave error(AssertionError::class.java) }
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
     fun `should update request state for Observable on errors`() {
         compositor.compose(Observable.error<Int>(AssertionError()))
             .test { it shouldHave error(AssertionError::class.java) }
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
 // Cancel ------------------------------------------------------------------------------------------
@@ -96,7 +105,7 @@ class RequestStateCompositorTest {
             .delay(10, TimeUnit.SECONDS))
             .test { it.cancel() }
 
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
@@ -105,7 +114,7 @@ class RequestStateCompositorTest {
             .delay(10, TimeUnit.SECONDS))
             .test { it.cancel() }
 
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
@@ -114,7 +123,7 @@ class RequestStateCompositorTest {
             .delay(10, TimeUnit.SECONDS))
             .test { it.cancel() }
 
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 
     @Test
@@ -123,6 +132,6 @@ class RequestStateCompositorTest {
             .delay(10, TimeUnit.SECONDS))
             .test { it.cancel() }
 
-        checkRequestStates()
+        checkSingleRequestStates()
     }
 }

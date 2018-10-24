@@ -26,6 +26,7 @@ class RequestStateRxCompositor(
     override fun <T> compose(flowable: Flowable<T>): Flowable<T> {
         return flowable
             .doOnSubscribe { client.requestState.onNext(response(RequestState.STARTED)) }
+            .doAfterNext { client.requestState.onNext(response(RequestState.NEXT)) }
             .doAfterTerminate { client.requestState.onNext(response(RequestState.FINISHED)) }
             .doOnCancel { client.requestState.onNext(response(RequestState.FINISHED)) }
     }
@@ -33,6 +34,7 @@ class RequestStateRxCompositor(
     override fun <T> compose(observable: Observable<T>): Observable<T> {
         return observable
             .doOnSubscribe { client.requestState.onNext(response(RequestState.STARTED)) }
+            .doAfterNext { client.requestState.onNext(response(RequestState.NEXT)) }
             .doAfterTerminate { client.requestState.onNext(response(RequestState.FINISHED)) }
             .doOnDispose { client.requestState.onNext(response(RequestState.FINISHED)) }
     }
