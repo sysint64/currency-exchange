@@ -9,5 +9,7 @@ interface ViewMediatorAware {
      */
     fun viewStateRefresh() {}
 
+    fun subscribe() {}
+
     fun unsubscribe() {}
 }

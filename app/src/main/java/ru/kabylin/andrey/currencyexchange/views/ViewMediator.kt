@@ -9,9 +9,18 @@ import io.reactivex.disposables.CompositeDisposable
 open class ViewMediator(val aware: ViewMediatorAware, private val lifecycle: Lifecycle) : LifecycleObserver {
     val lifecycleDisposer = CompositeDisposable()
 
+    init {
+        @Suppress("LeakingThis")
+        lifecycle.addObserver(this)
+    }
+
+    open fun onCreate() {
+    }
+
     @CallSuper
     @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
     open fun subscribe() {
+        aware.subscribe()
     }
 
     @CallSuper

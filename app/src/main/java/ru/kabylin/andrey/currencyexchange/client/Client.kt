@@ -73,6 +73,9 @@ open class Client {
     fun <T> execute(query: Flowable<T>, requestCode: Int = Client.REQUEST_DEFAULT, onNext: (ClientResponse<T>) -> Unit = {}): ClientRequest =
         execute(query, requestCode, onNext, {})
 
+    fun <T> execute(query: Flowable<T>, onNext: (ClientResponse<T>) -> Unit = {}): ClientRequest =
+        execute(query, Client.REQUEST_DEFAULT, onNext, {})
+
     fun <T> execute(query: Flowable<T>, onNext: (ClientResponse<T>) -> Unit, onComplete: () -> Unit): ClientRequest =
         execute(query, Client.REQUEST_DEFAULT, onNext, onComplete)
 
